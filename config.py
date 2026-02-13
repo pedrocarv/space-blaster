@@ -1,5 +1,10 @@
 """Constants and configuration for Space Blaster."""
 
+import os
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FONT_PATH = os.path.join(_BASE_DIR, 'assets', 'PressStart2P-Regular.ttf')
+
 # ---------- Display ----------
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600

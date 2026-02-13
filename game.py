@@ -30,7 +30,7 @@ from renderer import (
     draw_laser, draw_enemy_laser,
 )
 from screens import (
-    Fonts, BUTTON_RECT, PAUSE_CONTINUE_RECT, PAUSE_QUIT_RECT,
+    Fonts, BUTTON_RECT, GAME_OVER_BUTTON_RECT, PAUSE_CONTINUE_RECT, PAUSE_QUIT_RECT,
     draw_title_screen, draw_hud, draw_stage_effects,
     draw_pause_screen, draw_game_over_screen,
 )
@@ -143,8 +143,11 @@ class Game:
                 sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.state in ('TITLE', 'GAME_OVER'):
+                if self.state == 'TITLE':
                     if BUTTON_RECT.collidepoint(mouse_pos):
+                        self.reset()
+                elif self.state == 'GAME_OVER':
+                    if GAME_OVER_BUTTON_RECT.collidepoint(mouse_pos):
                         self.reset()
                 elif self.state == 'PAUSED':
                     if PAUSE_CONTINUE_RECT.collidepoint(mouse_pos):
