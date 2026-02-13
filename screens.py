@@ -146,8 +146,8 @@ def draw_title_screen(surface, fonts, high_scores, mouse_pos, title_frame, playe
             surface.blit(score_text, (panel_rect.right - 20 - score_text.get_width(), row_y))
 
 
-def draw_hud(surface, fonts, score, stage, lives):
-    """Draw the in-game HUD: hearts, score, and stage indicator."""
+def draw_hud(surface, fonts, score, stage, lives, is_boosted=False):
+    """Draw the in-game HUD: hearts, score, stage, and boost indicator."""
     from renderer import draw_hearts
     draw_hearts(surface, lives)
 
@@ -158,6 +158,13 @@ def draw_hud(surface, fonts, score, stage, lives):
     stage_hud = fonts.score.render(f'STAGE {stage}', True, (180, 200, 255))
     _draw_text_with_shadow(surface, stage_hud,
                            SCREEN_WIDTH // 2 - stage_hud.get_width() // 2, 12)
+
+    if is_boosted:
+        boost_text = fonts.small.render('SPEED UP!', True, (50, 255, 50))
+        # Blink effect
+        if (pygame.time.get_ticks() // 500) % 2 == 0:
+            _draw_text_with_shadow(surface, boost_text,
+                                   SCREEN_WIDTH // 2 - boost_text.get_width() // 2, 35)
 
 
 def draw_stage_effects(surface, fonts, stage, stage_flash, stage_announce):

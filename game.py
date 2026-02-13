@@ -7,7 +7,8 @@ import pygame
 
 from config import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, TITLE, DEFAULT_BG_COLOR,
-    PLAYER_WIDTH, PLAYER_HEIGHT, PLAYER_SPEED, PLAYER_LIVES, INVINCIBLE_DURATION,
+    PLAYER_WIDTH, PLAYER_HEIGHT, PLAYER_SPEED, PLAYER_SPEED_BOOSTED,
+    SPEED_BOOST_THRESHOLD, PLAYER_LIVES, INVINCIBLE_DURATION,
     BULLET_WIDTH, BULLET_HEIGHT, BULLET_SPEED,
     ENEMY_WIDTH, ENEMY_HEIGHT,
     ENEMY_BULLET_WIDTH, ENEMY_BULLET_HEIGHT, ENEMY_BULLET_SPEED,
@@ -77,6 +78,7 @@ class Game:
         self.player_y = SCREEN_HEIGHT - PLAYER_HEIGHT - 10
         self.player_lives = PLAYER_LIVES
         self.player_invincible = 0
+        self.speed_boost_active = False
 
         # Score & stage
         self.score = 0
@@ -117,6 +119,7 @@ class Game:
         self.player_x = SCREEN_WIDTH // 2 - PLAYER_WIDTH // 2
         self.player_lives = PLAYER_LIVES
         self.player_invincible = 0
+        self.speed_boost_active = False
         self.score = 0
         self.stage = 1
         self.stage_flash = 0
@@ -189,11 +192,16 @@ class Game:
             return
 
         # Player movement
+        current_speed = PLAYER_SPEED_BOOSTED if self.speed_boost_active else PLAYER_SPEED
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and self.player_x > 0:
-            self.player_x -= PLAYER_SPEED
+            self.player_x -= current_speed
         if keys[pygame.K_RIGHT] and self.player_x < SCREEN_WIDTH - PLAYER_WIDTH:
-            self.player_x += PLAYER_SPEED
+            self.player_x += current_speed
+
+        # Speed boost check
+        if not self.speed_boost_active and self.score >= SPEED_BOOST_THRESHOLD:
+            self.speed_boost_active = True
 
         # Player bullets
         for bullet in self.bullets:
@@ -356,13 +364,15 @@ class Game:
                 self.screen.blit(buf, (shake_x, shake_y))
             else:
                 self._draw_gameplay_to(self.screen, mouse_pos)
-            draw_hud(self.screen, self.fonts, self.score, self.stage, self.player_lives)
+            draw_hud(self.screen, self.fonts, self.score, self.stage, self.player_lives,
+                     self.speed_boost_active)
             draw_stage_effects(self.screen, self.fonts, self.stage,
                                self.stage_flash, self.stage_announce)
 
         elif self.state == 'PAUSED':
             self._draw_gameplay_to(self.screen, mouse_pos)
-            draw_hud(self.screen, self.fonts, self.score, self.stage, self.player_lives)
+            draw_hud(self.screen, self.fonts, self.score, self.stage, self.player_lives,
+                     self.speed_boost_active)
             draw_pause_screen(self.screen, self.fonts, self.score, self.stage, mouse_pos)
 
         elif self.state == 'GAME_OVER':

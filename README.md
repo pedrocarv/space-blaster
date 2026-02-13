@@ -5,9 +5,9 @@ A retro-style space shooter built with **Pygame**, featuring procedural sound ef
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/title_screen.png" alt="Title Screen" width="260"/>
-  <img src="screenshots/gameplay.png" alt="Gameplay" width="260"/>
-  <img src="screenshots/game_over.png" alt="Game Over" width="260"/>
+  <img src="screenshots/title_screen.png?v=2" alt="Title Screen" width="260"/>
+  <img src="screenshots/gameplay.png?v=2" alt="Gameplay" width="260"/>
+  <img src="screenshots/game_over.png?v=2" alt="Game Over" width="260"/>
 </p>
 
 ## Features
