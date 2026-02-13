@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+highscores.json
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
