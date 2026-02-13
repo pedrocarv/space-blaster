@@ -90,6 +90,9 @@ class Game:
         self.enemies = []
         self.enemy_bullets = []
 
+        # Screen shake
+        self.shake_intensity = 0
+
         # Dynamic settings (applied from stage config)
         self.enemy_speed = STAGE_CONFIGS[0]['enemy_speed']
         self.enemy_spawn_time = STAGE_CONFIGS[0]['spawn_time']
@@ -118,6 +121,7 @@ class Game:
         self.stage = 1
         self.stage_flash = 0
         self.stage_announce = 0
+        self.shake_intensity = 0
         self.celestial_obj = None
         self.celestial_cooldown = random.randint(CELESTIAL_COOLDOWN_MIN, CELESTIAL_COOLDOWN_MAX)
         self.apply_stage_config()
@@ -228,7 +232,8 @@ class Game:
                     ecx = enemy.x + ENEMY_WIDTH // 2
                     ecy = enemy.y + ENEMY_HEIGHT // 2
                     self.particles.spawn(ecx, ecy, ENEMY_EXPLOSION_COLORS,
-                                         count=22, speed_range=(1.5, 5), lifetime=28)
+                                         count=30, speed_range=(1.5, 6), lifetime=32)
+                    self.shake_intensity = 6
                     self.bullets.remove(bullet)
                     self.enemies.remove(enemy)
                     self.score += SCORE_PER_KILL
@@ -252,10 +257,12 @@ class Game:
                     pcx = self.player_x + PLAYER_WIDTH // 2
                     pcy = self.player_y + PLAYER_HEIGHT // 2
                     self.particles.spawn(pcx, pcy, PLAYER_EXPLOSION_COLORS,
-                                         count=10, speed_range=(1, 3), lifetime=18)
+                                         count=18, speed_range=(1, 4), lifetime=22)
+                    self.shake_intensity = 10
                     if self.player_lives <= 0:
                         self.particles.spawn(pcx, pcy, PLAYER_EXPLOSION_COLORS,
-                                             count=40, speed_range=(2, 7), lifetime=40)
+                                             count=55, speed_range=(2, 8), lifetime=45)
+                        self.shake_intensity = 18
                         self.high_scores = save_high_score(self.score)
                         self.state = 'GAME_OVER'
                     break
@@ -286,8 +293,15 @@ class Game:
     # ---------- Draw ----------
 
     def draw(self):
-        """Render the current frame."""
+        """Render the current frame with optional screen shake."""
         mouse_pos = pygame.mouse.get_pos()
+
+        # Compute shake offset
+        shake_x, shake_y = 0, 0
+        if self.shake_intensity > 0:
+            shake_x = random.randint(-self.shake_intensity, self.shake_intensity)
+            shake_y = random.randint(-self.shake_intensity, self.shake_intensity)
+            self.shake_intensity = max(0, self.shake_intensity - 1)
 
         # Background
         bg = self.get_stage_config()['bg'] if self.state in ('PLAYING', 'PAUSED') else DEFAULT_BG_COLOR
@@ -329,53 +343,65 @@ class Game:
         # Advance title animation counter
         self.title_frame += 1
 
-        # State-specific drawing
+        # State-specific drawing — gameplay uses shake offset
         if self.state == 'TITLE':
             draw_title_screen(self.screen, self.fonts, self.high_scores,
                               mouse_pos, self.title_frame, PLAYER_WIDTH, PLAYER_HEIGHT)
 
         elif self.state == 'PLAYING':
-            self._draw_gameplay(mouse_pos)
+            # Render gameplay to buffer for shake effect
+            if shake_x != 0 or shake_y != 0:
+                buf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                self._draw_gameplay_to(buf, mouse_pos)
+                self.screen.blit(buf, (shake_x, shake_y))
+            else:
+                self._draw_gameplay_to(self.screen, mouse_pos)
             draw_hud(self.screen, self.fonts, self.score, self.stage, self.player_lives)
             draw_stage_effects(self.screen, self.fonts, self.stage,
                                self.stage_flash, self.stage_announce)
 
         elif self.state == 'PAUSED':
-            self._draw_gameplay(mouse_pos)
+            self._draw_gameplay_to(self.screen, mouse_pos)
             draw_hud(self.screen, self.fonts, self.score, self.stage, self.player_lives)
             draw_pause_screen(self.screen, self.fonts, self.score, self.stage, mouse_pos)
 
         elif self.state == 'GAME_OVER':
-            self.particles.update_and_draw(self.screen)
+            # Still apply shake to explosion aftermath
+            if shake_x != 0 or shake_y != 0:
+                buf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                self.particles.update_and_draw(buf)
+                self.screen.blit(buf, (shake_x, shake_y))
+            else:
+                self.particles.update_and_draw(self.screen)
             draw_game_over_screen(self.screen, self.fonts, self.score, self.stage,
                                   self.high_scores, mouse_pos)
 
         pygame.display.flip()
 
-    def _draw_gameplay(self, mouse_pos):
-        """Draw player, enemies, bullets, and explosions."""
+    def _draw_gameplay_to(self, target, mouse_pos):
+        """Draw player, enemies, bullets, and explosions to a target surface."""
         cfg = self.get_stage_config()
 
         # Player (blink when invincible)
         if self.player_invincible == 0 or (self.player_invincible // 4) % 2 == 0:
-            draw_player_ship(self.screen, self.player_x, self.player_y,
+            draw_player_ship(target, self.player_x, self.player_y,
                              PLAYER_WIDTH, PLAYER_HEIGHT)
 
         # Player lasers
         for bullet in self.bullets:
-            draw_laser(self.screen, bullet)
+            draw_laser(target, bullet)
 
         # Enemy lasers
         for eb in self.enemy_bullets:
-            draw_enemy_laser(self.screen, eb)
+            draw_enemy_laser(target, eb)
 
         # Enemies
         for enemy in self.enemies:
-            draw_enemy_ship(self.screen, enemy.x, enemy.y, ENEMY_WIDTH, ENEMY_HEIGHT,
+            draw_enemy_ship(target, enemy.x, enemy.y, ENEMY_WIDTH, ENEMY_HEIGHT,
                             cfg['enemy_body'], cfg['enemy_wing'])
 
         # Explosions
-        self.particles.update_and_draw(self.screen)
+        self.particles.update_and_draw(target)
 
     # ---------- Main loop ----------
 
