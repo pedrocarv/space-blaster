@@ -1,0 +1,96 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: SpaceBlaster-macOS
+            pyinstaller_sep: ':'
+          - os: windows-latest
+            artifact: SpaceBlaster-Windows
+            pyinstaller_sep: ';'
+          - os: ubuntu-latest
+            artifact: SpaceBlaster-Linux
+            pyinstaller_sep: ':'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # Linux needs SDL2 dev libraries for pygame
+      - name: Install SDL2 (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev libsdl2-ttf-dev
+
+      - name: Build executable
+        run: >
+          pyinstaller --onefile
+          --add-data "assets${{ matrix.pyinstaller_sep }}assets"
+          --name SpaceBlaster
+          main.py
+
+      # Package the artifact
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -r ${{ matrix.artifact }}.zip SpaceBlaster.app || zip -r ${{ matrix.artifact }}.zip SpaceBlaster
+          cd ..
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd dist
+          chmod +x SpaceBlaster
+          tar czf ${{ matrix.artifact }}.tar.gz SpaceBlaster
+          cd ..
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/SpaceBlaster.exe -DestinationPath dist/${{ matrix.artifact }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}.*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
