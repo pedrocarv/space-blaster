@@ -2,6 +2,14 @@
 
 A retro-style space shooter built with **Pygame**, featuring procedural sound effects, parallax starfield backgrounds, and a 5-stage difficulty progression system.
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/title_screen.png" alt="Title Screen" width="260"/>
+  <img src="screenshots/gameplay.png" alt="Gameplay" width="260"/>
+  <img src="screenshots/game_over.png" alt="Game Over" width="260"/>
+</p>
+
 ## Features
 
 - **Polygon-based spaceship sprites** — player and enemies rendered as detailed vector ships
